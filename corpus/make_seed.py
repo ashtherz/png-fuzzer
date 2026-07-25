@@ -14,6 +14,7 @@ Run:
     python3 make_seed.py            # writes ./seed.png (8x8 RGB gradient)
     python3 make_seed.py out.png    # custom output path
 """
+import os
 import struct
 import sys
 import zlib
@@ -67,7 +68,12 @@ def build_png(width: int = 8, height: int = 8) -> bytes:
 
 
 def main() -> None:
-    out = sys.argv[1] if len(sys.argv) > 1 else "seed.png"
+    # Default output goes next to this script (the corpus/ directory), so the
+    # seed lands in the same place regardless of the current working directory
+    # -- e.g. `python3 corpus/make_seed.py` and `cd corpus && python3 make_seed.py`
+    # both write corpus/seed.png, which is where the fuzzer looks for seeds.
+    default_out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed.png")
+    out = sys.argv[1] if len(sys.argv) > 1 else default_out
     png = build_png()
     with open(out, "wb") as f:
         f.write(png)
