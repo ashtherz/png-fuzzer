@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" role="img" aria-label="PNG Mutation Fuzzer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#58a6ff"/>
+      <stop offset="1" stop-color="#a371f7"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 54px 'Segoe UI', Helvetica, Arial, sans-serif; fill: #e6edf3; }
+      .sub   { font: 400 20px 'Segoe UI', Helvetica, Arial, sans-serif; fill: #8b949e; letter-spacing: .5px; }
+      .box   { font: 600 17px 'SFMono-Regular', Consolas, monospace; fill: #c9d1d9; }
+      .arrow { stroke: #6e7681; stroke-width: 2.5; fill: none; }
+      .chip  { fill: #21262d; stroke: #30363d; stroke-width: 1.5; }
+      .crash { fill: #2d1b1f; stroke: #f85149; stroke-width: 1.5; }
+      .crashtx { font: 600 17px 'SFMono-Regular', Consolas, monospace; fill: #ff7b72; }
+      .tag   { font: 500 13px 'SFMono-Regular', Consolas, monospace; fill: #7ee787; }
+    </style>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6e7681"/>
+    </marker>
+  </defs>
+
+  <rect width="1280" height="340" rx="18" fill="url(#bg)"/>
+  <rect x="0" y="0" width="10" height="340" rx="5" fill="url(#accent)"/>
+
+  <text x="60" y="92" class="title">PNG Mutation Fuzzer</text>
+  <text x="62" y="126" class="sub">black-box · mutation-based · sanitizer-backed bug discovery</text>
+
+  <!-- pipeline row -->
+  <g transform="translate(60,190)">
+    <!-- seed -->
+    <rect class="chip" x="0" y="0" width="150" height="64" rx="10"/>
+    <text class="box" x="75" y="39" text-anchor="middle">seed.png</text>
+
+    <path class="arrow" d="M158 32 H210" marker-end="url(#ah)"/>
+
+    <!-- mutate -->
+    <rect class="chip" x="218" y="0" width="150" height="64" rx="10"/>
+    <text class="box" x="293" y="39" text-anchor="middle">mutate</text>
+
+    <path class="arrow" d="M376 32 H428" marker-end="url(#ah)"/>
+
+    <!-- decoder -->
+    <rect class="chip" x="436" y="0" width="252" height="64" rx="10"/>
+    <text class="box" x="562" y="33" text-anchor="middle">naive_decoder</text>
+    <text class="tag" x="562" y="52" text-anchor="middle">ASan · UBSan</text>
+
+    <path class="arrow" d="M696 32 H748" marker-end="url(#ah)"/>
+
+    <!-- crash -->
+    <rect class="crash" x="756" y="0" width="150" height="64" rx="10"/>
+    <text class="crashtx" x="831" y="39" text-anchor="middle">crash!</text>
+
+    <path class="arrow" d="M914 32 H966" marker-end="url(#ah)"/>
+
+    <!-- dedup -->
+    <rect class="chip" x="974" y="0" width="186" height="64" rx="10"/>
+    <text class="box" x="1067" y="33" text-anchor="middle">dedup + save</text>
+    <text class="tag" x="1067" y="52" text-anchor="middle">by crash site</text>
+
+    <!-- loop back -->
+    <path class="arrow" d="M293 64 V104 H293 Q10 104 10 60 Q10 40 40 34" marker-end="url(#ah)" opacity="0.55"/>
+  </g>
+</svg>

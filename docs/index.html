@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PNG Mutation Fuzzer</title>
+<meta name="description" content="A small, readable black-box mutation fuzzer for PNG decoders — mutate, run under ASan/UBSan, detect, dedup by crash site.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐛</text></svg>">
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --panel-brd:#d0d7de; --fg:#1f2328; --dim:#656d76;
+    --accent:#0969da; --accent2:#8250df; --green:#1a7f37; --red:#cf222e;
+    --code-bg:#f6f8fa; --shadow:0 1px 3px rgba(31,35,40,.12),0 8px 24px rgba(31,35,40,.08);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d1117; --panel:#161b22; --panel-brd:#30363d; --fg:#e6edf3; --dim:#8b949e;
+      --accent:#58a6ff; --accent2:#a371f7; --green:#3fb950; --red:#ff7b72;
+      --code-bg:#161b22; --shadow:0 1px 3px rgba(1,4,9,.5),0 8px 24px rgba(1,4,9,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --panel:#161b22; --panel-brd:#30363d; --fg:#e6edf3; --dim:#8b949e;
+    --accent:#58a6ff; --accent2:#a371f7; --green:#3fb950; --red:#ff7b72; --code-bg:#161b22;
+    --shadow:0 1px 3px rgba(1,4,9,.5),0 8px 24px rgba(1,4,9,.4);
+  }
+  :root[data-theme="light"]{
+    --bg:#ffffff; --panel:#f6f8fa; --panel-brd:#d0d7de; --fg:#1f2328; --dim:#656d76;
+    --accent:#0969da; --accent2:#8250df; --green:#1a7f37; --red:#cf222e; --code-bg:#f6f8fa;
+    --shadow:0 1px 3px rgba(31,35,40,.12),0 8px 24px rgba(31,35,40,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px}
+  code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+  img{max-width:100%;height:auto}
+
+  header{padding:56px 0 28px;text-align:center}
+  header .banner{width:100%;border-radius:14px;box-shadow:var(--shadow);display:block}
+  .tagline{color:var(--dim);font-size:1.15rem;margin:22px auto 0;max-width:680px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:22px 0 6px}
+  .badges img{height:20px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:26px 0 8px}
+  .btn{display:inline-block;padding:10px 20px;border-radius:9px;font-weight:600;
+    border:1px solid var(--panel-brd);background:var(--panel);color:var(--fg);transition:transform .06s ease}
+  .btn:hover{text-decoration:none;transform:translateY(-1px)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  :root[data-theme="light"] .btn.primary,:root:not([data-theme]) .btn.primary{color:#fff}
+
+  section{padding:34px 0;border-top:1px solid var(--panel-brd)}
+  h2{font-size:1.5rem;margin:0 0 6px}
+  h2 .num{color:var(--accent2);font-variant-numeric:tabular-nums;margin-right:8px}
+  .lead{color:var(--dim);margin:0 0 22px}
+
+  figure{margin:0 0 8px}
+  figure img{width:100%;border-radius:12px;border:1px solid var(--panel-brd);box-shadow:var(--shadow);display:block}
+  figcaption{color:var(--dim);font-size:.92rem;margin-top:10px;text-align:center}
+
+  .pipeline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    background:var(--panel);border:1px solid var(--panel-brd);border-radius:12px;padding:18px}
+  .pipeline .step{font-family:"SFMono-Regular",Consolas,monospace;font-size:.9rem;
+    background:var(--bg);border:1px solid var(--panel-brd);border-radius:8px;padding:8px 12px;white-space:nowrap}
+  .pipeline .step.crash{border-color:var(--red);color:var(--red)}
+  .pipeline .arr{color:var(--dim)}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:26px}
+  pre{background:var(--code-bg);border:1px solid var(--panel-brd);border-radius:10px;
+    padding:16px 18px;overflow-x:auto;font-size:.9rem;line-height:1.5}
+  pre .c{color:var(--dim)}
+  .tbl{width:100%;border-collapse:collapse;font-size:.94rem;overflow-x:auto;display:block}
+  .tbl th,.tbl td{border:1px solid var(--panel-brd);padding:9px 12px;text-align:left;vertical-align:top}
+  .tbl th{background:var(--panel)}
+  .tbl code{color:var(--accent)}
+  .cwe{color:var(--red);font-weight:600;white-space:nowrap}
+
+  .note{background:var(--panel);border:1px solid var(--panel-brd);border-left:3px solid var(--accent2);
+    border-radius:8px;padding:14px 16px;color:var(--dim)}
+  .note b{color:var(--fg)}
+
+  footer{padding:34px 0 60px;color:var(--dim);font-size:.9rem;text-align:center;border-top:1px solid var(--panel-brd)}
+  .theme-toggle{position:fixed;top:14px;right:14px;background:var(--panel);border:1px solid var(--panel-brd);
+    color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.85rem}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle colour theme">◐ theme</button>
+
+<header>
+  <div class="wrap">
+    <img class="banner" src="banner.svg" alt="PNG Mutation Fuzzer">
+    <p class="tagline">A small, readable <b>black-box mutation fuzzer</b> for PNG decoders —
+      in the spirit of AFL++ / libFuzzer, stripped to its essentials so you can read every line
+      and understand <em>why</em> it finds bugs.</p>
+    <div class="badges">
+      <a href="https://github.com/ashtherz/png-fuzzer/actions/workflows/ci.yml"><img src="https://github.com/ashtherz/png-fuzzer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+      <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT">
+      <img src="https://img.shields.io/badge/dependencies-none-brightgreen.svg" alt="No dependencies">
+      <img src="https://img.shields.io/badge/sanitizers-ASan%20%2B%20UBSan-orange.svg" alt="ASan + UBSan">
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/ashtherz/png-fuzzer">View on GitHub</a>
+      <a class="btn" href="https://github.com/ashtherz/png-fuzzer/blob/master/docs/GUIDE.md">Read the guide</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section style="border-top:none">
+    <h2>See it run</h2>
+    <p class="lead">A deterministic <code>--seed 0</code> campaign finds all four planted
+      bugs within the first ~20 iterations, then deduplicates thousands of raw crashes down to them.</p>
+    <figure>
+      <img src="demo.gif" alt="A live fuzzing campaign discovering all four planted bugs">
+      <figcaption>317 raw crashes → 4 unique bugs. Every line names the mutation that caused the crash.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p class="lead">Four responsibilities, wired into one loop.</p>
+    <div class="pipeline">
+      <span class="step">seed.png</span><span class="arr">→</span>
+      <span class="step">mutate</span><span class="arr">→</span>
+      <span class="step">naive_decoder · ASan/UBSan</span><span class="arr">→</span>
+      <span class="step crash">crash!</span><span class="arr">→</span>
+      <span class="step">dedup + save</span>
+    </div>
+    <p class="lead" style="margin-top:18px">The mutator corrupts the exact fields a decoder trusts;
+      the sanitized target turns silent memory corruption into a located crash; the harness detects it,
+      buckets it by <b>crash site</b>, and saves a reproducible input.</p>
+  </section>
+
+  <section>
+    <h2><span class="num">01</span>Inspect structure — and triage crashes</h2>
+    <p class="lead">The inspector prints a chunk table and never chokes on bad bytes, so the same
+      tool works on a valid seed and on a saved crash file.</p>
+    <figure>
+      <img src="inspect.gif" alt="Inspecting a valid file, then a malformed crash file">
+      <figcaption>A chunk that lies about its length is flagged <span style="color:var(--red)">LENGTH RUNS PAST EOF</span> — that's planted bug #1 in one line.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>Reproduce &amp; read the report</h2>
+    <p class="lead"><code>repro</code> replays a saved input and maps the sanitizer report to a CWE and a root cause.</p>
+    <figure>
+      <img src="repro.gif" alt="Reproducing a saved crash and reading the sanitizer report">
+      <figcaption>The <code>#0</code> frame is the crash site the harness deduplicates on: <code>naive_decoder.c:103</code>.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>Why the sanitizer matters</h2>
+    <p class="lead">The same malformed input, two builds of the same decoder.</p>
+    <figure>
+      <img src="silent.gif" alt="The same bytes are silent in release but caught under AddressSanitizer">
+      <figcaption>Release prints <span style="color:var(--green)">decoded ok</span>; the ASan build aborts. The bug was always there — just invisible.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>The four planted bugs</h2>
+    <p class="lead">Each lives in its own function, so a report blames exactly one weakness.</p>
+    <table class="tbl">
+      <thead><tr><th>Function</th><th>Weakness</th><th>Root cause</th></tr></thead>
+      <tbody>
+        <tr><td><code>chunk_checksum</code></td><td><span class="cwe">CWE-125</span> heap over-read</td><td>Trusts a chunk length from the file when reading.</td></tr>
+        <tr><td><code>fill_row_scratch</code></td><td><span class="cwe">CWE-121/787</span> stack overflow</td><td>File-controlled count writes into a fixed 64-byte stack buffer.</td></tr>
+        <tr><td><code>ihdr_channel_lookup</code></td><td><span class="cwe">CWE-125/129</span> OOB index read</td><td>Colour-type byte used directly as an array index.</td></tr>
+        <tr><td><code>ihdr_alloc_and_fill</code></td><td><span class="cwe">CWE-190→787</span> narrowing → heap write</td><td>32-bit width narrowed to 16-bit when sizing the buffer.</td></tr>
+      </tbody>
+    </table>
+    <p class="lead" style="margin-top:18px">The common thread: a value taken from the file and
+      <b>trusted</b> as a length, an index, or a size, with no bounds check — the most common shape of
+      real memory-safety bugs.</p>
+  </section>
+
+  <section>
+    <h2>Try it in three commands</h2>
+<pre><span class="c"># clone, build the sanitized target, make a seed</span>
+git clone https://github.com/ashtherz/png-fuzzer.git &amp;&amp; cd png-fuzzer
+cd target &amp;&amp; make &amp;&amp; cd .. &amp;&amp; python3 corpus/make_seed.py
+
+<span class="c"># run a campaign, then read the results</span>
+python3 src/fuzz.py fuzz --iters 4000 --seed 0 &amp;&amp; cat crashes/SUMMARY.md</pre>
+    <div class="note" style="margin-top:18px"><b>Scope.</b> The target is a deliberately vulnerable
+      decoder written for this project, modelling real CWE classes. It demonstrates bug <em>discovery</em> —
+      it is not a scan of production libpng. For education and authorized security testing only.</div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <p><a href="https://github.com/ashtherz/png-fuzzer">github.com/ashtherz/png-fuzzer</a> ·
+     MIT licensed · Built for <span title="UNSW security course">COMP6841</span></p>
+</footer>
+
+<script>
+  function toggleTheme(){
+    var r=document.documentElement;
+    var cur=r.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+    r.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  }
+</script>
+</body>
+</html>

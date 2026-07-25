@@ -36,7 +36,8 @@ records** the memory-safety bugs they trigger.
 
 > 📖 **New here?** The [illustrated walkthrough in `docs/GUIDE.md`](docs/GUIDE.md)
 > tours the whole pipeline step by step (with GIFs) — a good starting point and a
-> ready-made basis for a write-up.
+> ready-made basis for a write-up. There's also a
+> [project website](https://ashtherz.github.io/png-fuzzer/) (GitHub Pages).
 
 ## Why this exists
 
@@ -347,6 +348,12 @@ the sanitized target on Ubuntu, runs a deterministic `--seed 0` campaign, and
 asserts (via `scripts/check_findings.py`) that all four planted bugs are still
 discovered and deduplicated. A green badge means the whole pipeline works from a
 clean checkout.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the
+checks CI runs, and how to add a mutation strategy or a planted bug. The guiding
+rule is simply: keep it readable.
 
 ## License
 
