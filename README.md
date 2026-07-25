@@ -34,6 +34,10 @@ records** the memory-safety bugs they trigger.
 
 ---
 
+> 📖 **New here?** The [illustrated walkthrough in `docs/GUIDE.md`](docs/GUIDE.md)
+> tours the whole pipeline step by step (with GIFs) — a good starting point and a
+> ready-made basis for a write-up.
+
 ## Why this exists
 
 Real fuzzers (AFL++, libFuzzer, honggfuzz) are coverage-guided and heavily
