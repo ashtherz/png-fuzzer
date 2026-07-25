@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="620" viewBox="0 0 1040 620" role="img" aria-label="PNG fuzzer architecture">
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/><stop offset="1" stop-color="#12161d"/>
+    </linearGradient>
+    <style>
+      .lbl   { font: 700 15px 'SFMono-Regular',Consolas,monospace; fill:#e6edf3; }
+      .sub   { font: 400 12px 'Segoe UI',Helvetica,Arial,sans-serif; fill:#8b949e; }
+      .head  { font: 700 13px 'Segoe UI',Helvetica,Arial,sans-serif; fill:#8b949e; letter-spacing:1px; }
+      .file  { font: 600 13px 'SFMono-Regular',Consolas,monospace; fill:#c9d1d9; }
+      .tag   { font: 600 11px 'SFMono-Regular',Consolas,monospace; fill:#7ee787; }
+      .py    { fill:#161b22; stroke:#3b82a0; stroke-width:1.5; }
+      .c     { fill:#1d1a12; stroke:#d9a441; stroke-width:1.5; }
+      .data  { fill:#161b22; stroke:#30363d; stroke-width:1.5; }
+      .crashb{ fill:#2d1b1f; stroke:#f85149; stroke-width:1.5; }
+      .loopbox{ fill:none; stroke:#30363d; stroke-width:1.5; stroke-dasharray:6 5; }
+      .flow  { stroke:#6e7681; stroke-width:2; fill:none; }
+      .loop  { stroke:#a371f7; stroke-width:2; fill:none; }
+      .tri   { stroke:#58a6ff; stroke-width:1.6; fill:none; stroke-dasharray:4 4; }
+    </style>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6e7681"/></marker>
+    <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#a371f7"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#58a6ff"/></marker>
+  </defs>
+
+  <rect width="1040" height="620" rx="16" fill="url(#abg)"/>
+
+  <!-- ============ INPUT column ============ -->
+  <text class="head" x="40" y="52">INPUT</text>
+  <g>
+    <rect class="py" x="40" y="66" width="200" height="58" rx="10"/>
+    <text class="lbl" x="140" y="90" text-anchor="middle">make_seed.py</text>
+    <text class="sub" x="140" y="108" text-anchor="middle">builds a valid PNG by hand</text>
+  </g>
+  <path class="flow" d="M140 124 V150" marker-end="url(#a)"/>
+  <g>
+    <rect class="data" x="40" y="150" width="200" height="54" rx="10"/>
+    <text class="file" x="140" y="173" text-anchor="middle">seed.png</text>
+    <text class="sub" x="140" y="190" text-anchor="middle">corpus/</text>
+  </g>
+  <!-- seed feeds the loop -->
+  <path class="flow" d="M240 177 H300 Q320 177 320 197 V214" marker-end="url(#a)"/>
+
+  <!-- ============ HARNESS loop ============ -->
+  <text class="head" x="300" y="52">fuzz.py — DRIVER LOOP</text>
+  <rect class="loopbox" x="292" y="64" width="470" height="300" rx="14"/>
+
+  <!-- mutate -->
+  <g>
+    <rect class="py" x="322" y="214" width="180" height="58" rx="10"/>
+    <text class="lbl" x="412" y="238" text-anchor="middle">mutator.py</text>
+    <text class="sub" x="412" y="256" text-anchor="middle">named strategies · havoc</text>
+  </g>
+  <path class="flow" d="M502 243 H556" marker-end="url(#a)"/>
+  <!-- malformed -->
+  <g>
+    <rect class="data" x="556" y="216" width="176" height="54" rx="10"/>
+    <text class="file" x="644" y="239" text-anchor="middle">malformed.png</text>
+    <text class="sub" x="644" y="256" text-anchor="middle">seeded RNG → reproducible</text>
+  </g>
+  <path class="flow" d="M644 270 V300" marker-end="url(#a)"/>
+  <!-- run target -->
+  <g>
+    <rect class="c" x="512" y="300" width="220" height="58" rx="10"/>
+    <text class="lbl" x="622" y="324" text-anchor="middle">naive_decoder</text>
+    <text class="tag" x="622" y="343" text-anchor="middle">compiled under ASan · UBSan</text>
+  </g>
+
+  <!-- single, clear loop-back from the detect stage up to mutate -->
+  <path class="loop" d="M326 424 V282" marker-end="url(#ap)"/>
+  <text class="sub" x="150" y="352" fill="#a371f7">loop: next iteration</text>
+
+  <!-- ============ DETECT / DEDUP ============ -->
+  <text class="head" x="300" y="410">DETECT &amp; DEDUPLICATE</text>
+  <g>
+    <rect class="py" x="292" y="424" width="210" height="64" rx="10"/>
+    <text class="lbl" x="397" y="448" text-anchor="middle">classify()</text>
+    <text class="sub" x="397" y="466" text-anchor="middle">signal or sanitizer report?</text>
+    <text class="sub" x="397" y="481" text-anchor="middle">parse crash site + bug type</text>
+  </g>
+  <path class="flow" d="M622 358 V396 Q622 424 560 424 H504" marker-end="url(#a)"/>
+  <text class="sub" x="636" y="384">crash?</text>
+  <path class="flow" d="M502 456 H556" marker-end="url(#a)"/>
+  <g>
+    <rect class="py" x="556" y="424" width="206" height="64" rx="10"/>
+    <text class="lbl" x="659" y="448" text-anchor="middle">dedup by site</text>
+    <text class="sub" x="659" y="466" text-anchor="middle">key = file:line</text>
+    <text class="sub" x="659" y="481" text-anchor="middle">(not the address-bearing msg)</text>
+  </g>
+
+  <!-- ============ OUTPUT ============ -->
+  <text class="head" x="820" y="410">OUTPUT — crashes/</text>
+  <path class="flow" d="M762 456 H800" marker-end="url(#a)"/>
+  <g>
+    <rect class="data" x="800" y="404" width="200" height="40" rx="8"/>
+    <text class="file" x="900" y="429" text-anchor="middle">NNN_&lt;bug&gt;.png</text>
+  </g>
+  <g>
+    <rect class="data" x="800" y="450" width="200" height="40" rx="8"/>
+    <text class="file" x="900" y="475" text-anchor="middle">NNN_&lt;bug&gt;.txt</text>
+  </g>
+  <g>
+    <rect class="data" x="800" y="496" width="200" height="40" rx="8"/>
+    <text class="file" x="900" y="521" text-anchor="middle">SUMMARY.md</text>
+  </g>
+
+  <!-- ============ TRIAGE tool ============ -->
+  <text class="head" x="40" y="410">TRIAGE (standalone)</text>
+  <g>
+    <rect class="py" x="40" y="424" width="200" height="64" rx="10"/>
+    <text class="lbl" x="140" y="448" text-anchor="middle">png_inspect.py</text>
+    <text class="sub" x="140" y="466" text-anchor="middle">tolerant chunk table;</text>
+    <text class="sub" x="140" y="481" text-anchor="middle">never crashes on bad input</text>
+  </g>
+  <path class="tri" d="M140 424 V206" marker-end="url(#ab)"/>
+  <path class="tri" d="M150 488 V560 H900 V540" marker-end="url(#ab)"/>
+  <text class="sub" x="300" y="554" fill="#58a6ff">png_inspect.py also reads saved crash files</text>
+
+  <!-- caption -->
+  <text class="sub" x="520" y="600" text-anchor="middle" font-size="13">
+    Five single-responsibility components. Blue = Python · amber = C target · grey = data · purple = the loop.
+  </text>
+</svg>

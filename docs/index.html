@@ -77,6 +77,12 @@
   .tbl code{color:var(--accent)}
   .cwe{color:var(--red);font-weight:600;white-space:nowrap}
 
+  .stat{background:var(--panel);border:1px solid var(--panel-brd);border-radius:12px;padding:20px;
+    text-align:center;margin:0 0 22px;font-size:1.2rem;color:var(--dim)}
+  .stat .big{font-size:2.4rem;font-weight:800;color:var(--fg);vertical-align:middle}
+  .stat .big.g{color:var(--green)}
+  .stat .to{color:var(--accent2);margin:0 10px;font-weight:700}
+
   .note{background:var(--panel);border:1px solid var(--panel-brd);border-left:3px solid var(--accent2);
     border-radius:8px;padding:14px 16px;color:var(--dim)}
   .note b{color:var(--fg)}
@@ -136,6 +142,15 @@
   </section>
 
   <section>
+    <h2>Architecture</h2>
+    <p class="lead">Five single-responsibility components. The harness (<code>fuzz.py</code>) drives the
+      loop; the inspector is a standalone triage tool that reads the seed and saved crash files.</p>
+    <figure>
+      <img src="architecture.svg" alt="Architecture and data flow: seed generator, mutator, sanitized target, harness detect/dedup, outputs, and the inspector">
+    </figure>
+  </section>
+
+  <section>
     <h2><span class="num">01</span>Inspect structure — and triage crashes</h2>
     <p class="lead">The inspector prints a chunk table and never chokes on bad bytes, so the same
       tool works on a valid seed and on a saved crash file.</p>
@@ -178,6 +193,26 @@
     <p class="lead" style="margin-top:18px">The common thread: a value taken from the file and
       <b>trusted</b> as a length, an index, or a size, with no bounds check — the most common shape of
       real memory-safety bugs.</p>
+  </section>
+
+  <section>
+    <h2>Findings from a real run</h2>
+    <p class="lead">A 1500-iteration <code>--seed 0</code> campaign — deduplicated by crash site down to
+      the real bugs. This is exactly why dedup exists.</p>
+    <div class="stat"><span class="big">692</span> raw crashes <span class="to">→</span>
+      <span class="big g">4</span> unique bugs</div>
+    <table class="tbl">
+      <thead><tr><th>#</th><th>crash site</th><th>function</th><th>bug type</th><th>times hit</th></tr></thead>
+      <tbody>
+        <tr><td>001</td><td><code>naive_decoder.c:103</code></td><td><code>chunk_checksum</code></td><td>heap-buffer-overflow</td><td>486</td></tr>
+        <tr><td>002</td><td><code>naive_decoder.c:48</code></td><td><code>ihdr_channel_lookup</code></td><td>oob-index</td><td>87</td></tr>
+        <tr><td>003</td><td><code>naive_decoder.c:86</code></td><td><code>fill_row_scratch</code></td><td>oob-index</td><td>83</td></tr>
+        <tr><td>004</td><td><code>naive_decoder.c:69</code></td><td><code>ihdr_alloc_and_fill</code></td><td>heap-buffer-overflow</td><td>36</td></tr>
+      </tbody>
+    </table>
+    <p class="lead" style="margin-top:16px">Key on the sanitizer's full message instead of the crash
+      site and those 692 crashes would look like hundreds of "uniques" — the address in each report
+      changes every run.</p>
   </section>
 
   <section>

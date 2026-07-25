@@ -44,6 +44,10 @@ seed ─▶ mutate ─▶ malformed.png ─▶ decoder (ASan/UBSan) ─▶ crash
           └───────────────────────────── loop ──────────────────────────────┘
 ```
 
+The full component/data-flow view (harness internals, plus the standalone triage tool):
+
+![Architecture and data flow](architecture.svg)
+
 ---
 
 ## 2. Setup
