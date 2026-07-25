@@ -1,0 +1,23 @@
+# Built target binaries (rebuild with `cd target && make`)
+target/naive_decoder
+target/naive_decoder_release
+*.dSYM/
+
+# Generated seed (regenerate with `python3 corpus/make_seed.py`)
+corpus/seed.png
+
+# Fuzzer output. Keep the directory, ignore the artifacts a run produces.
+crashes/*
+!crashes/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS cruft
+.DS_Store
+
+# Local editor / Claude Code config (not part of the project)
+.claude/
