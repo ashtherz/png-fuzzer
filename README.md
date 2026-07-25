@@ -22,6 +22,10 @@ It generates malformed PNG files, feeds them to a decoder compiled under
 UndefinedBehaviorSanitizer, and then **detects, locates, deduplicates, and
 records** the memory-safety bugs they trigger.
 
+<p align="center">
+  <img src=".github/demo.gif" alt="A fuzzing campaign discovering all four planted bugs from a single seed" width="92%">
+</p>
+
 > **Scope.** The target decoder (`target/naive_decoder.c`) is a deliberately
 > vulnerable decoder written for this project, modelling real
 > [CWE](https://cwe.mitre.org/) weakness classes. This demonstrates bug
