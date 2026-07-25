@@ -1,0 +1,55 @@
+name: fuzz-smoke
+
+# Build the sanitized target, generate a seed, run a short deterministic
+# fuzzing campaign, and assert that all four planted bugs are discovered and
+# correctly deduplicated. A green check means the whole pipeline still works.
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Show toolchain
+        run: |
+          cc --version | head -1
+          python3 --version
+
+      - name: Build sanitized target
+        run: make -C target
+
+      - name: Generate seed
+        run: python3 corpus/make_seed.py
+
+      - name: Inspect the seed (sanity)
+        run: python3 src/png_inspect.py corpus/seed.png
+
+      - name: Run a deterministic fuzzing campaign
+        run: python3 src/fuzz.py fuzz --iters 1500 --seed 0
+
+      - name: Assert all planted bugs were found
+        run: python3 scripts/check_findings.py crashes/SUMMARY.md
+
+      - name: Show summary
+        if: always()
+        run: cat crashes/SUMMARY.md || true
+
+      - name: Upload crash artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashes
+          path: crashes/
+          if-no-files-found: ignore

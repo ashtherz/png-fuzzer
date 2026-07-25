@@ -1,3 +1,16 @@
+<p align="center">
+  <img src=".github/banner.svg" alt="PNG Mutation Fuzzer" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/ashtherz/png-fuzzer/actions/workflows/ci.yml">
+    <img src="https://github.com/ashtherz/png-fuzzer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">
+  <img src="https://img.shields.io/badge/dependencies-none-brightgreen.svg" alt="No dependencies">
+  <img src="https://img.shields.io/badge/python-3.x-3776ab.svg" alt="Python 3">
+  <img src="https://img.shields.io/badge/sanitizers-ASan%20%2B%20UBSan-orange.svg" alt="ASan + UBSan">
+</p>
+
 # PNG Mutation Fuzzer
 
 A small, readable, **black-box mutation fuzzer** for PNG image decoders — in the
@@ -79,6 +92,35 @@ cat crashes/SUMMARY.md
 # 6. Reproduce any saved crash (prints the full sanitizer report)
 python3 src/fuzz.py repro crashes/001_*.png
 ```
+
+---
+
+## Example run
+
+A campaign with `--seed 0` is fully deterministic — it finds all four planted
+bugs within the first ~20 iterations, then spends the rest of the run
+re-triggering them and deduplicating:
+
+```text
+$ python3 src/fuzz.py fuzz --iters 700 --seed 0
+[     1] NEW  #001  heap-buffer-overflow naive_decoder.c:103   via lie_length: chunk#1 IDAT len 132 -> 4294967295
+[     7] NEW  #002  oob-index            naive_decoder.c:48    via havoc[dup_chunk: chunk#2 IEND duplicated | ihdr_field: colou...
+[    16] NEW  #003  oob-index            naive_decoder.c:86    via havoc[ihdr_field: width = 256 (0x100) | byte_flip: byte 29 ...
+[    19] NEW  #004  heap-buffer-overflow naive_decoder.c:69    via havoc[lie_length: chunk#0 IHDR len 13 -> 16777215 | ihdr_...
+...
+done in 82.7s   crashing runs: 317   unique bugs: 4
+```
+
+Every line names the mutation that produced the crash, so a finding is always
+traceable to the exact byte-level change that caused it. The resulting
+`crashes/SUMMARY.md`:
+
+| # | crash site | function | bug type | CWE | root cause |
+|---|------------|----------|----------|-----|------------|
+| 001 | `naive_decoder.c:103` | `chunk_checksum` | heap-buffer-overflow | CWE-125 | Trusts a chunk length from the file when reading data. |
+| 002 | `naive_decoder.c:48` | `ihdr_channel_lookup` | oob-index | CWE-125/129 | Unvalidated colour-type byte used directly as an array index. |
+| 003 | `naive_decoder.c:86` | `fill_row_scratch` | oob-index | CWE-121/787 | File-controlled count writes into a fixed 64-byte stack buffer. |
+| 004 | `naive_decoder.c:69` | `ihdr_alloc_and_fill` | heap-buffer-overflow | CWE-190→787 | 32-bit width narrowed to 16-bit when sizing the pixel buffer. |
 
 ---
 
@@ -270,6 +312,33 @@ with its triggering input, the mutation trace, and the full sanitizer report.
 See [`crashes/SUMMARY.md`](crashes/SUMMARY.md) after a run for the live table.
 
 ---
+
+## Repository layout
+
+```
+png-fuzzer/
+├── corpus/
+│   └── make_seed.py          # builds a valid PNG byte-by-byte
+├── src/
+│   ├── mutator.py            # named mutations + havoc, seeded RNG
+│   ├── png_inspect.py        # tolerant chunk-table printer / triage
+│   └── fuzz.py               # the driver loop
+├── target/
+│   ├── naive_decoder.c       # deliberately vulnerable decoder
+│   └── Makefile              # `make` (sanitized) / `make release`
+├── scripts/
+│   └── check_findings.py     # CI assertion: all planted bugs found
+├── crashes/                  # findings land here (gitignored)
+└── .github/workflows/ci.yml  # builds + runs a smoke campaign on every push
+```
+
+## Continuous integration
+
+Every push runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml): it builds
+the sanitized target on Ubuntu, runs a deterministic `--seed 0` campaign, and
+asserts (via `scripts/check_findings.py`) that all four planted bugs are still
+discovered and deduplicated. A green badge means the whole pipeline works from a
+clean checkout.
 
 ## License
 
