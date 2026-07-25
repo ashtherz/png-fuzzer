@@ -24,11 +24,12 @@ jobs:
 
       - name: Show toolchain
         run: |
-          cc --version | head -1
+          clang --version | head -1
+          llvm-symbolizer --version || true
           python3 --version
 
       - name: Build sanitized target
-        run: make -C target
+        run: make -C target CC=clang
 
       - name: Generate seed
         run: python3 corpus/make_seed.py
