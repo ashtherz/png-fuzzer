@@ -102,6 +102,9 @@ cat crashes/SUMMARY.md
 python3 src/fuzz.py repro crashes/001_*.png
 ```
 
+> **Prefer `make`?** `make build`, `make seed`, then `make fuzz` do steps 1, 2
+> and 4 — run `make help` to see every shortcut.
+
 ---
 
 ## Example run
@@ -328,6 +331,12 @@ scripts/run_campaign.sh autocorpus_out 6000 0
 #     note: 3 file(s) are not PNG-signed; ... inspect with png_inspect.py
 ```
 
+…or the same thing through the top-level `make` shortcut:
+
+```bash
+make fuzz SEEDS=autocorpus_out ITERS=6000 SEED=0
+```
+
 > **Honest caveat.** AutoCorpus shines on structured, *human-readable* formats
 > (JSON, XML, config files); PNG is a binary format, so treat anything it
 > produces as raw starting material and run it through
@@ -373,6 +382,7 @@ See [`crashes/SUMMARY.md`](crashes/SUMMARY.md) after a run for the live table.
 
 ```
 png-fuzzer/
+├── Makefile                  # convenience shortcuts (make fuzz / build / check …)
 ├── corpus/
 │   └── make_seed.py          # builds a valid PNG byte-by-byte
 ├── src/
