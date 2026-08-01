@@ -318,6 +318,16 @@ right before this fuzzer's mutation stage:
 python3 src/fuzz.py fuzz --seeds autocorpus_out --iters 6000 --seed 0
 ```
 
+Or hand the folder to the one-command helper — it builds the target if needed,
+**sanity-checks how many files actually parse as PNG** (useful for generic /
+generated seeds), and runs the campaign:
+
+```bash
+scripts/run_campaign.sh autocorpus_out 6000 0
+# ==> seed check: 12 *.png file(s), 9 with a valid PNG signature
+#     note: 3 file(s) are not PNG-signed; ... inspect with png_inspect.py
+```
+
 > **Honest caveat.** AutoCorpus shines on structured, *human-readable* formats
 > (JSON, XML, config files); PNG is a binary format, so treat anything it
 > produces as raw starting material and run it through
@@ -373,6 +383,7 @@ png-fuzzer/
 │   ├── naive_decoder.c       # deliberately vulnerable decoder
 │   └── Makefile              # `make` (sanitized) / `make release`
 ├── scripts/
+│   ├── run_campaign.sh       # one-command: build + seed-check + fuzz
 │   └── check_findings.py     # CI assertion: all planted bugs found
 ├── crashes/                  # findings land here (gitignored)
 └── .github/workflows/ci.yml  # builds + runs a smoke campaign on every push
