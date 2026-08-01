@@ -84,9 +84,7 @@ def classify(stderr: str, returncode: int, timed_out: bool) -> Optional[CrashInf
 
     m = _SUMMARY_RE.search(stderr)
     if m:
-        sanitizer, kind, fname, line, _col_unused, func_in_summary = (
-            m.group(1), m.group(2), m.group(3), m.group(4), None, m.group(5)
-        )
+        sanitizer, kind, fname, line, func_in_summary = m.groups()
         site = f"{fname}:{line}"
         # Recover the function name and refine the bug type for UBSan.
         function = func_in_summary or "-"
@@ -152,8 +150,8 @@ def run_target(target: Path, png_path: Path, timeout: Optional[float]) -> tuple[
         )
         return p.stderr + p.stdout, p.returncode, False
     except subprocess.TimeoutExpired as e:
-        out = (e.stderr or "") + (e.stdout or "") if isinstance(e.stderr, str) else ""
-        return out, 0, True
+        # text=True, so stdout/stderr are str or None.
+        return (e.stderr or "") + (e.stdout or ""), 0, True
 
 
 # --------------------------------------------------------------------------- #

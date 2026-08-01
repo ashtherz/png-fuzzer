@@ -181,10 +181,33 @@ years. AddressSanitizer puts a poisoned *red-zone* around every allocation and
 aborts on the first access into it, turning invisible corruption into a
 deterministic, located crash.
 
+Reproduce it yourself — craft one input with a *mild* over-read (a chunk length
+that lies just past the real data) and run it through both builds:
+
 ```bash
 cd target && make release && cd ..     # optimized, NO sanitizers
-# feed both builds the same file (see README "Seeing that the bugs are silent")
+
+python3 - <<'PY'
+import struct, zlib
+sig=b"\x89PNG\r\n\x1a\n"
+def chunk(t,d): return struct.pack(">I",len(d))+t+d+struct.pack(">I",zlib.crc32(t+d)&0xffffffff)
+raw=bytearray()
+for y in range(8):
+    raw.append(0)
+    for x in range(8): raw+=bytes([(x*32)&0xff,(y*32)&0xff,((x+y)*16)&0xff])
+idat=zlib.compress(bytes(raw),9)
+ih=chunk(b"IHDR",struct.pack(">IIBBBBB",8,8,8,2,0,0,0))
+bad=struct.pack(">I",len(idat)+40)+b"IDAT"+idat+struct.pack(">I",0)   # length lies +40
+open("/tmp/mild.png","wb").write(sig+ih+bad+chunk(b"IEND",b""))
+PY
+
+./target/naive_decoder_release /tmp/mild.png   # release: prints "decoded ok"
+./target/naive_decoder         /tmp/mild.png   # ASan: aborts with heap-buffer-overflow
 ```
+
+(A *large* over-read may `SIGSEGV`/`SIGBUS` even in release once it walks into an
+unmapped page — it's the small, quiet corruption that a sanitizer is really
+needed to catch.)
 
 ---
 
