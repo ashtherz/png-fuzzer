@@ -244,7 +244,12 @@ Good prompts for a write-up or for extending the project:
    for the same `--iters`. How many unique bugs does each reach? This measures how
    much *structure awareness* is worth.
 2. **Seed sensitivity.** Generate a grayscale seed (colour type 0) and compare.
-   Which bugs stay reachable? (Reachability is bounded by seed diversity.)
+   Which bugs stay reachable? (Reachability is bounded by seed diversity.) Then
+   go the other way and *grow* the corpus — point `--seeds` at a bigger folder,
+   e.g. one produced by [AutoCorpus](https://github.com/user1342/AutoCorpus), an
+   LLM-backed seed generator. Seed **generation** and seed **mutation** are
+   complementary; this fuzzer handles the second and consumes whatever the first
+   produces.
 3. **Timeouts.** Add `--timeout 1` and see whether any input is recorded as a
    hang (a denial-of-service finding) rather than a memory crash.
 4. **Break the dedup on purpose.** Temporarily key the signature on the full

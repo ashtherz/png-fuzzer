@@ -291,11 +291,48 @@ that a sanitizer is really needed to catch.)
 
 ---
 
+## Seeds & growing the corpus
+
+The fuzzer is **seed-agnostic**: it loads every `*.png` in the seed directory, so
+you can point it at any corpus with `--seeds`:
+
+```bash
+python3 src/fuzz.py fuzz --seeds path/to/corpus --iters 6000 --seed 0
+```
+
+Because it's black-box, the seeds *are* the reach — more diverse seeds exercise
+more code paths, so growing the corpus is the single biggest lever on results.
+Good sources: real-world sample files, files with unusual-but-valid structure
+(different colour types, bit depths, ancillary chunks), and **auto-generated
+seeds**.
+
+For that last one, [**AutoCorpus**](https://github.com/user1342/AutoCorpus) by
+[@user1342](https://github.com/user1342) is a neat fit — it's an LLM-backed tool
+that *generates corpus files for fuzzing* from a text prompt and/or existing
+samples. That's precisely the "give me a richer seed set" job, and it slots in
+right before this fuzzer's mutation stage:
+
+```bash
+# 1. (in AutoCorpus) generate a folder of seed inputs, e.g. ./autocorpus_out
+# 2. mutate them here — no other change needed:
+python3 src/fuzz.py fuzz --seeds autocorpus_out --iters 6000 --seed 0
+```
+
+> **Honest caveat.** AutoCorpus shines on structured, *human-readable* formats
+> (JSON, XML, config files); PNG is a binary format, so treat anything it
+> produces as raw starting material and run it through
+> [`png_inspect.py`](src/png_inspect.py) to see which files actually parse as
+> PNG. The idea generalises regardless of format: **seed generation and seed
+> mutation are complementary stages of the same pipeline** — AutoCorpus makes
+> seeds, this fuzzer mutates them.
+
 ## Non-goals / limitations
 
 - **Black-box, not coverage-guided.** Unlike AFL++/libFuzzer, it gets no coverage
   feedback and does not learn which mutations reach new code.
-- **Small seed corpus.** Reachable bugs are bounded by seed diversity.
+- **Small seed corpus.** Reachable bugs are bounded by seed diversity — see
+  [Seeds & growing the corpus](#seeds--growing-the-corpus) for how to feed it a
+  richer one (including auto-generated seeds).
 - **Self-authored target.** Bugs are planted to model real CWE classes; this is a
   demonstration of the pipeline, not an audit of a production decoder.
 - **No minimization.** Crashing inputs are saved as-is, not reduced.
@@ -354,6 +391,23 @@ clean checkout.
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the
 checks CI runs, and how to add a mutation strategy or a planted bug. The guiding
 rule is simply: keep it readable.
+
+## Acknowledgements & related projects
+
+- [**AutoCorpus**](https://github.com/user1342/AutoCorpus) (GPL-3.0, by
+  [@user1342](https://github.com/user1342)) — an LLM-backed generator of fuzzing
+  corpus files. It complements this project cleanly: AutoCorpus **generates**
+  seeds, this fuzzer **mutates** them. See
+  [Seeds & growing the corpus](#seeds--growing-the-corpus).
+- The detection approach is built on
+  [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html) and
+  UndefinedBehaviorSanitizer, and the overall design is inspired by
+  coverage-guided fuzzers like **AFL++** and **libFuzzer** (kept black-box here
+  for clarity).
+
+> AutoCorpus is a separate project under its own **GPL-3.0** license — it is
+> *referenced and interoperated with, not bundled*, so this repository stays
+> MIT-licensed. If you ever vendor its code in, mind the copyleft terms.
 
 ## License
 
