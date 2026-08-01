@@ -270,32 +270,40 @@ def cmd_fuzz(args) -> int:
     print("-" * 60)
 
     start = time.time()
-    for i in range(1, args.iters + 1):
-        base = rng.choice(seeds)
-        # ~35% of iterations use havoc (stacked mutations).
-        if rng.random() < 0.35:
-            res = mutator.havoc(rng, base, force=args.strategy)
-        else:
-            res = mutator.apply_one(rng, base, force=args.strategy)
+    done = 0
+    interrupted = False
+    try:
+        for i in range(1, args.iters + 1):
+            done = i
+            base = rng.choice(seeds)
+            # ~35% of iterations use havoc (stacked mutations).
+            if rng.random() < 0.35:
+                res = mutator.havoc(rng, base, force=args.strategy)
+            else:
+                res = mutator.apply_one(rng, base, force=args.strategy)
 
-        scratch.write_bytes(res.data)
-        stderr, rc, timed_out = run_target(target, scratch, args.timeout)
-        info = classify(stderr, rc, timed_out)
+            scratch.write_bytes(res.data)
+            stderr, rc, timed_out = run_target(target, scratch, args.timeout)
+            info = classify(stderr, rc, timed_out)
 
-        if info is not None:
-            repro_cmd = f"python3 src/fuzz.py repro crashes/{campaign.next_number:03d}_*.png"
-            finding = campaign.record(info, res.data, res.description, repro_cmd)
-            if finding is not None:
-                print(f"[{i:>6}] NEW  #{finding.number:03d}  {info.bug_type:<20} "
-                      f"{info.site:<24} via {res.description[:60]}")
-                campaign.write_summary()
+            if info is not None:
+                repro_cmd = f"python3 src/fuzz.py repro crashes/{campaign.next_number:03d}_*.png"
+                finding = campaign.record(info, res.data, res.description, repro_cmd)
+                if finding is not None:
+                    print(f"[{i:>6}] NEW  #{finding.number:03d}  {info.bug_type:<20} "
+                          f"{info.site:<24} via {res.description[:60]}")
+                    campaign.write_summary()
 
-        if i % max(1, args.iters // 20) == 0 or i == args.iters:
-            elapsed = time.time() - start
-            rate = i / elapsed if elapsed else 0
-            print(f"[{i:>6}/{args.iters}] crashes={campaign.total_crashes} "
-                  f"unique={len(campaign.findings)} "
-                  f"({rate:.0f} exec/s)")
+            if i % max(1, args.iters // 20) == 0 or i == args.iters:
+                elapsed = time.time() - start
+                rate = i / elapsed if elapsed else 0
+                print(f"[{i:>6}/{args.iters}] crashes={campaign.total_crashes} "
+                      f"unique={len(campaign.findings)} "
+                      f"({rate:.0f} exec/s)")
+    except KeyboardInterrupt:
+        # Ctrl+C: stop cleanly and keep everything found so far.
+        interrupted = True
+        print("\ninterrupted — wrapping up with what was found so far...")
 
     if scratch.exists():
         scratch.unlink()
@@ -303,8 +311,8 @@ def cmd_fuzz(args) -> int:
 
     elapsed = time.time() - start
     print("-" * 60)
-    print(f"done in {elapsed:.1f}s   "
-          f"crashing runs: {campaign.total_crashes}   "
+    print(f"{'stopped' if interrupted else 'done'} after {done} iters, "
+          f"{elapsed:.1f}s   crashing runs: {campaign.total_crashes}   "
           f"unique bugs: {len(campaign.findings)}")
     print(f"artifacts in: {out_dir}  (see SUMMARY.md)")
     return 0
